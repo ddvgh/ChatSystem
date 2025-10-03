@@ -1,22 +1,23 @@
 package tw.dd.spring123.websocket;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import tw.dd.spring123.entity.Message;
 import tw.dd.spring123.entity.User;
 import tw.dd.spring123.repository.MessageRepository;
-import tw.dd.spring123.repository.UserRepository;
-
-import java.util.*;
 
 @Component
 public class GameSocketHandler extends TextWebSocketHandler {
-
-	@Autowired
-	private UserRepository userRepo;
 
 	@Autowired
 	private MessageRepository messageRepo;
@@ -43,9 +44,11 @@ public class GameSocketHandler extends TextWebSocketHandler {
 		String payload = message.getPayload();
 		User user = sessionUserMap.get(session);
 		Long roomId = 1L;
-		messageRepo.save(new Message(user.getId(), session.getId(), roomId, payload));
-		broadcast("玩家 " + user.getUsername() + " 說：" + payload);
-		System.out.println("玩家" + user.getUsername() + " 說：" + payload);
+
+		messageRepo.save(new Message(user, session.getId(), roomId, payload));
+
+		broadcast(user.getUsername() + payload);
+		System.out.println(user.getUsername() + payload);
 	}
 
 	@Override

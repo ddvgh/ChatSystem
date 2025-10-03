@@ -1,9 +1,9 @@
-const { createApp, reactive, ref, onMounted, onBeforeUnmount } = Vue;
+const { createApp, ref, onMounted, onBeforeUnmount } = Vue;
 
 createApp({
 	setup() {
-		const messages = reactive([]);  // 聊天訊息陣列
-		const newMessage = ref("");     // 新訊息輸入框
+		const messages = ref([]);   // 聊天訊息陣列
+		const newMessage = ref(""); // 新訊息輸入框
 		let socket = null;
 		let reconnectTimer = null;
 
@@ -13,7 +13,6 @@ createApp({
 
 			socket.onopen = () => {
 				console.log("WebSocket 連線成功");
-				// 若之前有重連 timer，清掉
 				if (reconnectTimer) {
 					clearTimeout(reconnectTimer);
 					reconnectTimer = null;
@@ -21,12 +20,16 @@ createApp({
 			};
 
 			socket.onmessage = (event) => {
-				messages.push(event.data);
+				try {
+					const msg = JSON.parse(event.data);
+					messages.value.push(msg);
+				} catch {
+					messages.value.push(event.data);
+				}
 			};
 
 			socket.onclose = () => {
 				console.warn("WebSocket 斷線，2秒後嘗試重新連線...");
-				// 避免多次 setTimeout 疊加
 				if (!reconnectTimer) {
 					reconnectTimer = setTimeout(connectWebSocket, 2000);
 				}
@@ -34,7 +37,7 @@ createApp({
 
 			socket.onerror = (err) => {
 				console.error("WebSocket 錯誤", err);
-				socket.close(); // 發生錯誤就斷線重連
+				socket.close();
 			};
 		};
 
@@ -51,30 +54,25 @@ createApp({
 			}
 		};
 
-		// 取得歷史訊息 (可選，用 axios)
+		// 取得歷史訊息
 		const loadHistory = async () => {
 			try {
-				const res = await axios.get("/api/messages");
-				res.data.forEach(msg => messages.push(msg));
+				const roomId = 1; // 假設要撈 1 號房間
+				const res = await axios.get(`/api/messages/${roomId}`);
+				res.data.forEach(msg => messages.value.push(msg.senderName + ": " + msg.content));
 			} catch (err) {
 				console.error("載入歷史訊息失敗", err);
 			}
 		};
 
-		// 當組件掛載時
 		onMounted(() => {
 			loadHistory();
 			connectWebSocket();
 		});
 
-		// 當組件卸載時，關閉 WebSocket
 		onBeforeUnmount(() => {
-			if (socket) {
-				socket.close();
-			}
-			if (reconnectTimer) {
-				clearTimeout(reconnectTimer);
-			}
+			if (socket) socket.close();
+			if (reconnectTimer) clearTimeout(reconnectTimer);
 		});
 
 		return { messages, newMessage, sendMessage };

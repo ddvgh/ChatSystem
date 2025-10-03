@@ -26,6 +26,7 @@ public class HttpSessionInterceptor implements HandshakeInterceptor {
             if (httpSession != null) {
                 // ✅ 把 HttpSession 的 user 放到 WebSocket 的 attributes
                 attributes.put("user", httpSession.getAttribute("user"));
+                System.out.println("HttpSession : " + httpSession);
             }
         }
         return true;
@@ -33,9 +34,15 @@ public class HttpSessionInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(ServerHttpRequest request,
-                               ServerHttpResponse response,
-                               WebSocketHandler wsHandler,
-                               Exception exception) {
+            ServerHttpResponse response,
+            WebSocketHandler wsHandler,
+            Exception exception) {
+
+        if (request instanceof ServletServerHttpRequest servletRequest) {
+            HttpSession httpSession = servletRequest.getServletRequest().getSession(false);
+            if (httpSession != null) {
+                System.out.println("HttpSession : " + httpSession);
+            }
+        }
     }
 }
-
